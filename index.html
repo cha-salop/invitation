@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Fiesta de Cha</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --magenta: #ff007f;
+      --cyan: #00f0ff;
+      --yellow: #fffb00;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: #000;
+      color: #fff;
+      font-family: "Caveat", cursive;
+    }
+    img { max-width: none; display: block; }
+    p, h1, h2 { margin: 0; }
+    button, a { font: inherit; color: inherit; }
+
+    /* ===== Lienzo fijo de 390px que se escala al ancho de la pantalla ===== */
+    .stage {
+      --k: 1;
+      position: relative;
+      width: min(600px, 100%);
+      height: calc(836px * var(--k));
+      margin: 0 auto;
+      overflow: hidden;
+      background: #000;
+    }
+    .flyer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 390px;
+      height: 836px;
+      overflow: hidden;
+      background: #000;
+      transform: scale(var(--k));
+      transform-origin: 0 0;
+    }
+    .flyer > * { position: absolute; }
+
+    .wash {
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 8% 5%, rgba(255, 0, 127, .62), transparent 30%),
+        radial-gradient(circle at 94% 4%, rgba(0, 240, 255, .55), transparent 26%),
+        radial-gradient(circle at 80% 36%, rgba(255, 251, 0, .42), transparent 22%),
+        radial-gradient(circle at 10% 52%, rgba(255, 0, 127, .5), transparent 26%),
+        radial-gradient(circle at 90% 70%, rgba(0, 240, 255, .42), transparent 24%),
+        radial-gradient(circle at 40% 96%, rgba(255, 251, 0, .36), transparent 24%);
+    }
+    .grain {
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: .16;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ===== Chispitas de pincel (SVG reutilizable) ===== */
+    .sp {
+      z-index: 3;
+      pointer-events: none;
+      filter: drop-shadow(0 0 3px rgba(255, 255, 255, .35));
+    }
+
+    /* ===== Destellos hechos con CSS ===== */
+    .star, .bolt, .tick { z-index: 2; pointer-events: none; }
+    .star {
+      width: 20px;
+      height: 20px;
+      background: var(--yellow);
+      clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+      filter: drop-shadow(0 0 6px var(--yellow));
+    }
+    .star.pink { background: var(--magenta); filter: drop-shadow(0 0 6px var(--magenta)); }
+    .bolt {
+      width: 16px;
+      height: 30px;
+      background: var(--magenta);
+      clip-path: polygon(46% 0, 0 54%, 38% 54%, 18% 100%, 100% 40%, 54% 40%);
+      filter: drop-shadow(0 0 5px var(--magenta));
+    }
+    .bolt.cyan { background: var(--cyan); filter: drop-shadow(0 0 5px var(--cyan)); }
+    .bolt.yellow { background: var(--yellow); filter: drop-shadow(0 0 5px var(--yellow)); }
+    .tick {
+      height: 5px;
+      border-radius: 6px;
+      background: var(--yellow);
+      box-shadow: 0 0 8px var(--yellow);
+    }
+    .tick.pink { background: var(--magenta); box-shadow: 0 0 8px var(--magenta); }
+    .tick.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+    /* ===== Fotos: recortes con borde blanco pegados a mano ===== */
+    .shot {
+      z-index: 5;
+      height: auto;
+      background: transparent;
+      /* contorno blanco que sigue la silueta del recorte + brillo suave */
+      filter:
+        drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff)
+        drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
+        drop-shadow(0 0 10px rgba(255, 255, 255, .5))
+        drop-shadow(0 8px 8px rgba(0, 0, 0, .5));
+    }
+    .shot-a { top: 10px;  left: 4px;  width: 118px; }
+    .shot-b { top: 282px; right: 0;  width: 96px; transform: rotate(5deg); }
+    .shot-c { top: 338px; left: 6px;   width: 94px;  transform: rotate(-4deg); }
+
+    /* ===== Título ===== */
+    .hero {
+      top: 14px;
+      left: 124px;
+      right: 96px;
+      z-index: 4;
+    }
+    .title { text-align: center; transform: rotate(-3deg); }
+    .title span {
+      display: block;
+      font-family: "Permanent Marker", cursive;
+      font-size: 1.1rem;
+      line-height: .9;
+      white-space: nowrap;
+      color: #fff;
+      text-shadow: 3px 3px 0 #000, 0 0 10px rgba(255, 255, 255, .35);
+    }
+    .title strong {
+      position: relative;
+      display: block;
+      margin-top: 6px;
+      font-family: "Permanent Marker", cursive;
+      font-weight: 400;
+      font-size: 3.4rem;
+      line-height: .78;
+      letter-spacing: -1px;
+      color: var(--yellow);
+      -webkit-text-stroke: 2px #1a1208;
+      paint-order: stroke fill;
+      transform: rotate(-2deg);
+      filter: drop-shadow(5px 6px 0 var(--magenta));
+    }
+    .title strong::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      left: -6%;
+      right: -4%;
+      bottom: 2%;
+      height: 42%;
+      background: var(--magenta);
+      border-radius: 8px 14px 6px 10px;
+      transform: rotate(-2deg);
+      box-shadow: 0 0 18px rgba(255, 0, 127, .8);
+    }
+
+    .tape {
+      top: 6px;
+      right: -8px;
+      width: 96px;
+      height: auto;
+      z-index: 5;
+      transform: rotate(4deg);
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, .7));
+    }
+    .life {
+      top: 94px;
+      right: 6px;
+      width: 88px;
+      z-index: 5;
+      transform: rotate(6deg);
+      font-family: "Permanent Marker", cursive;
+      font-size: .66rem;
+      line-height: 1.05;
+      text-align: center;
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(255, 251, 0, .45);
+    }
+
+    /* ===== Letrero de papel (texto central, un solo contenedor) ===== */
+    .chalk {
+      top: 214px;
+      left: 60px;
+      right: 46px;
+      z-index: 4;
+      isolation: isolate;
+      padding: 20px 46px 24px 36px;
+      text-align: center;
+      transform: rotate(-3deg);
+      transform-origin: 0 0;
+      font-size: 1.14rem;
+      line-height: 1.04;
+      color: #141414;
+      filter: drop-shadow(0 5px 0 rgba(0, 0, 0, .4)) drop-shadow(0 0 14px rgba(255, 255, 255, .35));
+    }
+    .chalk .paper {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+    }
+    .chalk .cheers {
+      position: absolute;
+      right: -4px;
+      top: -22px;
+      width: 40px;
+      height: auto;
+      transform: rotate(14deg);
+    }
+    .chalk p { margin: 0; font-weight: 700; }
+    .chalk p + p { margin-top: 6px; }
+    .relajo {
+      display: inline-block;
+      background: var(--yellow);
+      color: #111;
+      padding: 0 .18em;
+      line-height: 1;
+      box-shadow: 0 0 8px rgba(255, 251, 0, .8);
+    }
+    .chalk .when {
+      display: table;
+      margin: 8px auto 4px;
+      padding: 3px 10px 5px;
+      background: #0a0a0a;
+      border: 3px dashed var(--yellow);
+      border-radius: 12px;
+      font-family: "Permanent Marker", cursive;
+      font-weight: 400;
+      font-size: .92rem;
+      line-height: 1.1;
+      letter-spacing: .01em;
+      color: var(--yellow);
+      text-shadow: 0 0 6px var(--yellow), 0 0 14px rgba(255, 251, 0, .7);
+      box-shadow: 0 0 12px rgba(255, 251, 0, .5);
+    }
+    .chalk .stay {
+      margin-top: 8px;
+      font-size: 1rem;
+      line-height: 1;
+      color: #c4005f;
+    }
+
+    /* ===== Barbacoa y bebidas ===== */
+    .plate {
+      top: 502px;
+      left: 12px;
+      width: 112px;
+      height: auto;
+      z-index: 3;
+      object-fit: cover;
+      background: #fff;
+      border: 5px solid #ffffff;
+      border-radius: 10px;
+      transform: rotate(-6deg);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.5), 0 0 22px rgba(255, 0, 127, .5);
+    }
+    .drinks {
+      top: 488px;
+      left: 172px;
+      width: 112px;
+      z-index: 4;
+      transform: translateX(-50%) rotate(2deg);
+    }
+    .drinks::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: -26px -34px -20px -34px;
+      background: radial-gradient(circle, rgba(255, 251, 0, .42), transparent 68%);
+    }
+    .drinks img { display: block; width: 100%; height: auto; }
+    .habia {
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translateX(-50%) rotate(-4deg);
+      white-space: nowrap;
+      font-family: "Permanent Marker", cursive;
+      font-size: .95rem;
+      line-height: 1;
+      color: var(--yellow);
+      text-shadow: 2px 2px 0 #000, 0 0 8px rgba(255, 251, 0, .8);
+    }
+    .sheep {
+      top: 226px;
+      left: 0;
+      width: 74px;
+      height: auto;
+      z-index: 5;
+      transform: rotate(-6deg);
+      filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 2px #000) drop-shadow(0 0 8px rgba(255, 251, 0, .45));
+    }
+
+    /* ===== Ubicación ===== */
+    .map {
+      top: 636px;
+      left: 12px;
+      width: 296px;
+      z-index: 6;
+      display: block;
+      text-decoration: none;
+      transform: rotate(-2deg);
+    }
+    .map .pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px 9px 10px;
+      background: #0a0d22;
+      border: 4px solid var(--yellow);
+      border-radius: 38px;
+      box-shadow: 0 0 14px rgba(255, 251, 0, .5), inset 0 0 0 2px rgba(0, 0, 0, .55);
+    }
+    .map .gpin { flex: 0 0 auto; }
+    .map .addr strong {
+      display: block;
+      font-family: "Caveat", cursive;
+      font-weight: 700;
+      font-size: 1.1rem;
+      line-height: 1.08;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+    }
+    .map:hover .pill { box-shadow: 0 0 22px rgba(255, 251, 0, .85), inset 0 0 0 2px rgba(0, 0, 0, .55); }
+
+    /* ===== Dress code (se monta sobre la esquina derecha del mapa) ===== */
+    .dress {
+      top: 478px;
+      right: 8px;
+      width: 144px;
+      z-index: 8;
+      text-align: center;
+      transform: rotate(-3deg);
+    }
+    .dress-card {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 0 12px rgba(255, 251, 0, .55)) drop-shadow(3px 4px 0 rgba(0, 0, 0, .5));
+    }
+    .shades {
+      position: absolute;
+      top: -34px;
+      right: -2px;
+      width: 68px;
+      height: auto;
+      transform: rotate(10deg);
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, .7));
+    }
+
+    /* ===== Radio y reproductor ===== */
+    .boom {
+      top: 722px;
+      left: 6px;
+      width: 120px;
+      height: auto;
+      z-index: 4;
+      transform: rotate(-4deg);
+      filter: drop-shadow(0 0 10px rgba(255, 0, 127, .45));
+    }
+    .player {
+      top: 738px;
+      left: 130px;
+      right: 12px;
+      z-index: 6;
+      appearance: none;
+      border: 4px solid var(--cyan);
+      background: #000;
+      color: #fff;
+      border-radius: 28px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 0 18px rgba(0, 240, 255, .65);
+      transform: rotate(-1deg);
+    }
+    .player:focus-visible, .map:focus-visible {
+      outline: 3px solid var(--yellow);
+      outline-offset: 3px;
+    }
+    .vinyl {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, var(--magenta) 0 6px, #111 7px 9px, transparent 10px),
+        repeating-radial-gradient(circle at 50% 50%, #2a2a2a 0 2px, #111 3px 5px);
+      box-shadow: 0 0 8px var(--magenta);
+    }
+    .player.is-on .vinyl { animation: spin 2.2s linear infinite; }
+    .meta { flex: 1; min-width: 0; line-height: 1; }
+    .meta small {
+      display: block;
+      font-family: "Permanent Marker", cursive;
+      font-size: .7rem;
+      letter-spacing: .04em;
+      color: var(--cyan);
+    }
+    .meta strong {
+      display: block;
+      font-family: "Permanent Marker", cursive;
+      font-weight: 400;
+      font-size: 1.25rem;
+      color: var(--yellow);
+    }
+    .meta em { font-style: normal; font-size: 1.15rem; }
+    .play {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--magenta);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 14px rgba(255, 0, 127, .9);
+    }
+    .play i {
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 7px 0 7px 12px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 3px;
+    }
+    .player.is-on .play i {
+      width: 12px;
+      height: 14px;
+      margin: 0;
+      border: 0;
+      background:
+        linear-gradient(#fff, #fff) left center / 4px 100% no-repeat,
+        linear-gradient(#fff, #fff) right center / 4px 100% no-repeat;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Pantallas grandes: el flyer se centra como cartel ===== */
+    @media (min-width: 700px) {
+      .stage {
+        margin-block: 24px;
+        border-radius: 22px;
+        box-shadow: 0 0 40px rgba(255, 0, 127, .35), 0 0 80px rgba(0, 240, 255, .2);
+      }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="spark-a" viewBox="-44 -44 88 88"><path d="M0.0 -10.0 Q-4.2 -19.8 -0.4 -38.0 Q0.0 -40.0 0.4 -38.0 Q4.2 -19.8 0.0 -10.0Z" fill="#fffb00"/><path d="M8.9 -8.0 Q11.2 -14.9 22.0 -20.4 Q23.8 -21.4 22.6 -19.8 Q16.0 -9.6 8.9 -8.0Z" fill="#00f0ff"/><path d="M10.0 0.3 Q20.6 -3.7 40.0 1.0 Q42.0 1.5 40.0 1.8 Q20.3 5.1 10.0 0.3Z" fill="#ff007f"/><path d="M8.3 8.6 Q15.5 10.9 21.8 22.0 Q22.9 23.7 21.2 22.6 Q10.4 15.9 8.3 8.6Z" fill="#fffb00"/><path d="M-0.3 10.0 Q3.5 19.6 -0.9 37.0 Q-1.4 39.0 -1.7 37.0 Q-4.9 19.3 -0.3 10.0Z" fill="#00f0ff"/><path d="M-8.6 8.3 Q-10.4 15.1 -20.6 20.4 Q-22.3 21.5 -21.1 19.9 Q-15.4 9.9 -8.6 8.3Z" fill="#ff007f"/><path d="M-10.0 -0.3 Q-20.3 3.7 -39.0 -1.0 Q-41.0 -1.4 -39.0 -1.8 Q-20.0 -5.1 -10.0 -0.3Z" fill="#fffb00"/><path d="M-8.0 -8.9 Q-14.9 -11.2 -20.4 -22.0 Q-21.4 -23.8 -19.8 -22.6 Q-9.6 -16.0 -8.0 -8.9Z" fill="#00f0ff"/></symbol>
+      <symbol id="spark-b" viewBox="-44 -44 88 88"><path d="M-7.3 -3.4 Q-17.9 -3.7 -32.8 -14.9 Q-34.4 -16.1 -32.5 -15.6 Q-14.4 -11.3 -7.3 -3.4Z" fill="#00f0ff"/><path d="M-5.3 -8.5 Q-11.7 -11.9 -15.2 -23.5 Q-15.9 -25.4 -14.5 -24.0 Q-5.6 -15.7 -5.3 -8.5Z" fill="#fffb00"/><path d="M0.0 -8.0 Q-4.6 -19.5 -0.4 -41.0 Q0.0 -43.0 0.4 -41.0 Q4.6 -19.5 0.0 -8.0Z" fill="#ff007f"/><path d="M5.3 -8.5 Q5.8 -16.0 15.0 -24.8 Q16.4 -26.3 15.7 -24.4 Q11.9 -12.2 5.3 -8.5Z" fill="#00f0ff"/><path d="M7.3 -3.4 Q14.7 -11.5 33.4 -16.0 Q35.3 -16.5 33.7 -15.3 Q18.2 -3.9 7.3 -3.4Z" fill="#fffb00"/></symbol>
+      <symbol id="spark-c" viewBox="-44 -44 88 88"><path d="M-6 -40 L12 -8 L0 -6 L18 34 L-16 2 L-4 0 L-14 -20 Z" fill="#ff007f"/><path d="M22 -34 Q32 -22 40 -28 Q32 -18 30 -8 Q26 -22 22 -34Z" fill="#fffb00"/><path d="M-36 14 Q-40 24 -30 34 Q-34 24 -24 16Z" fill="#00f0ff"/></symbol>
+      <symbol id="spark-d" viewBox="-44 -44 88 88"><path d="M-36 -16 Q-4 -22 36 -14 Q-4 -9 -36 -16Z" fill="#fffb00"/><path d="M-30 0 Q0 -6 40 2 Q0 7 -30 0Z" fill="#00f0ff"/><path d="M-36 16 Q-6 10 30 18 Q-6 22 -36 16Z" fill="#ff007f"/></symbol>
+    </defs>
+  </svg>
+  <main class="stage" id="stage">
+  <div class="flyer">
+    <div class="wash" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+
+    <svg class="sp" style="left:118px;top:166px;width:52px;height:52px;transform:rotate(10deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:334px;top:150px;width:50px;height:50px;transform:rotate(20deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:14px;top:184px;width:44px;height:44px;transform:rotate(-20deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:338px;top:420px;width:52px;height:52px;transform:rotate(12deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:222px;top:566px;width:40px;height:40px;transform:rotate(25deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:326px;top:640px;width:52px;height:52px;transform:rotate(18deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:24px;top:590px;width:50px;height:50px;transform:rotate(-10deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:196px;top:694px;width:40px;height:40px;transform:rotate(6deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:338px;top:688px;width:50px;height:50px;transform:rotate(-12deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:300px;top:800px;width:40px;height:40px;transform:rotate(10deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:92px;top:704px;width:40px;height:40px;transform:rotate(-8deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:150px;top:196px;width:36px;height:36px;transform:rotate(8deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:300px;top:188px;width:40px;height:40px;transform:rotate(-14deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:236px;top:612px;width:36px;height:36px;transform:rotate(6deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:132px;top:104px;width:54px;height:54px;transform:rotate(-8deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:196px;top:128px;width:60px;height:60px;transform:rotate(14deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:250px;top:112px;width:46px;height:46px;transform:rotate(10deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:262px;top:150px;width:48px;height:48px;transform:rotate(-14deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:168px;top:160px;width:40px;height:40px;transform:rotate(-20deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:344px;top:208px;width:46px;height:46px;transform:rotate(16deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:350px;top:246px;width:44px;height:44px;transform:rotate(-10deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:318px;top:236px;width:36px;height:36px;transform:rotate(8deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:150px;top:600px;width:44px;height:44px;transform:rotate(10deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:20px;top:640px;width:46px;height:46px;transform:rotate(-14deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:262px;top:616px;width:40px;height:40px;transform:rotate(-6deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:30px;top:692px;width:44px;height:44px;transform:rotate(12deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:264px;top:692px;width:50px;height:50px;transform:rotate(-8deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:150px;top:690px;width:40px;height:40px;transform:rotate(16deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:86px;top:606px;width:34px;height:34px;transform:rotate(20deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:120px;top:806px;width:44px;height:44px;transform:rotate(-6deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:260px;top:810px;width:40px;height:40px;transform:rotate(14deg)"><use href="#spark-b"/></svg>
+    <svg class="sp" style="left:350px;top:800px;width:44px;height:44px;transform:rotate(10deg)"><use href="#spark-a"/></svg>
+    <svg class="sp" style="left:14px;top:820px;width:40px;height:40px;transform:rotate(-10deg)"><use href="#spark-c"/></svg>
+    <svg class="sp" style="left:176px;top:100px;width:36px;height:36px;transform:rotate(6deg)"><use href="#spark-d"/></svg>
+    <svg class="sp" style="left:0px;top:296px;width:42px;height:42px;transform:rotate(12deg)"><use href="#spark-c"/></svg>
+    <i class="star" style="top:132px;left:226px;width:16px;height:16px"></i>
+    <i class="star pink" style="top:228px;left:352px;width:14px;height:14px"></i>
+    <i class="star" style="top:678px;left:60px;width:14px;height:14px"></i>
+    <i class="bolt yellow" style="top:140px;left:300px"></i>
+    <i class="bolt cyan" style="top:760px;left:290px"></i>
+    <i class="tick pink" style="top:176px;left:200px;width:34px;transform:rotate(-12deg)"></i>
+    <i class="tick cyan" style="top:262px;left:360px;width:26px;transform:rotate(8deg)"></i>
+    <i class="tick" style="top:626px;left:70px;width:34px;transform:rotate(-8deg)"></i>
+    <i class="star" style="top:20px;left:46%"></i>
+    <i class="star pink" style="top:206px;left:262px;width:14px;height:14px"></i>
+    <i class="star" style="top:604px;left:300px;width:14px;height:14px"></i>
+    <i class="star pink" style="top:700px;left:240px;width:14px;height:14px"></i>
+
+    <img class="shot shot-a" src="images/sticker1.png" alt="Cha">
+
+    <header class="hero">
+      <h1 class="title">
+        <span>¡TE INVITO</span>
+        <span>A LA FIESTA DE</span>
+        <strong>CHA!</strong>
+      </h1>
+    </header>
+
+    <img class="tape" src="images/cassete.png" alt="Cassette Ecos de Soda Stereo">
+    <p class="life">LA VIDA<br>ES MEJOR<br>CON BUENA<br>COMPAÑÍA</p>
+
+    <div class="chalk">
+      <svg class="paper" viewBox="0 0 370 250" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M7.3 4.5 L17.7 6.7 L32.7 -0.1 L41.8 7.2 L60.5 8.8 L73.2 12.8 L85.6 7.2 L100.9 9.8 L114.8 6.7 L128.3 4.0 L142.9 12.2 L155.6 10.0 L163.3 8.0 L178.1 12.8 L190.7 2.4 L206.2 3.8 L215.5 4.0 L224.0 5.7 L235.9 5.5 L246.0 9.7 L262.4 5.1 L273.5 4.3 L286.3 8.0 L297.4 7.8 L312.2 7.2 L327.1 5.3 L336.9 1.3 L352.3 5.8 L360.7 9.8 L362.2 23.4 L370.5 40.1 L365.8 51.9 L359.1 62.6 L358.0 79.1 L363.1 98.1 L358.5 113.3 L361.7 127.7 L365.7 143.5 L364.5 155.3 L362.2 172.7 L358.5 186.2 L363.4 198.3 L360.7 209.1 L362.4 222.0 L364.9 237.6 L363.0 243.3 L348.3 237.3 L336.2 243.1 L326.5 246.9 L313.6 241.7 L305.0 246.0 L292.3 245.0 L274.5 240.9 L261.9 244.9 L255.3 248.2 L243.1 244.2 L222.4 246.9 L207.5 249.3 L194.0 242.5 L186.6 244.3 L174.0 241.3 L155.5 239.5 L144.7 244.3 L126.2 248.4 L114.9 242.2 L100.5 241.2 L85.6 244.8 L74.7 244.3 L63.3 242.6 L45.4 238.9 L32.0 242.6 L19.9 242.1 L3.5 242.0 L8.2 231.7 L1.0 211.4 L7.4 202.6 L5.1 189.6 L4.5 169.9 L12.7 155.2 L11.8 145.4 L0.6 128.8 L7.2 112.9 L-0.8 97.6 L6.3 87.7 L12.9 79.0 L5.7 67.9 L6.6 56.3 L8.5 38.1 L8.7 20.5 L5.9 13.2 Z" fill="#f7f2e7"/>
+        <path d="M7.3 4.5 L17.7 6.7 L32.7 -0.1 L41.8 7.2 L60.5 8.8 L73.2 12.8 L85.6 7.2 L100.9 9.8 L114.8 6.7 L128.3 4.0 L142.9 12.2 L155.6 10.0 L163.3 8.0 L178.1 12.8 L190.7 2.4 L206.2 3.8 L215.5 4.0 L224.0 5.7 L235.9 5.5 L246.0 9.7 L262.4 5.1 L273.5 4.3 L286.3 8.0 L297.4 7.8 L312.2 7.2 L327.1 5.3 L336.9 1.3 L352.3 5.8 L360.7 9.8 L362.2 23.4 L370.5 40.1 L365.8 51.9 L359.1 62.6 L358.0 79.1 L363.1 98.1 L358.5 113.3 L361.7 127.7 L365.7 143.5 L364.5 155.3 L362.2 172.7 L358.5 186.2 L363.4 198.3 L360.7 209.1 L362.4 222.0 L364.9 237.6 L363.0 243.3 L348.3 237.3 L336.2 243.1 L326.5 246.9 L313.6 241.7 L305.0 246.0 L292.3 245.0 L274.5 240.9 L261.9 244.9 L255.3 248.2 L243.1 244.2 L222.4 246.9 L207.5 249.3 L194.0 242.5 L186.6 244.3 L174.0 241.3 L155.5 239.5 L144.7 244.3 L126.2 248.4 L114.9 242.2 L100.5 241.2 L85.6 244.8 L74.7 244.3 L63.3 242.6 L45.4 238.9 L32.0 242.6 L19.9 242.1 L3.5 242.0 L8.2 231.7 L1.0 211.4 L7.4 202.6 L5.1 189.6 L4.5 169.9 L12.7 155.2 L11.8 145.4 L0.6 128.8 L7.2 112.9 L-0.8 97.6 L6.3 87.7 L12.9 79.0 L5.7 67.9 L6.6 56.3 L8.5 38.1 L8.7 20.5 L5.9 13.2 Z" fill="none" stroke="#d9cfb8" stroke-width="1.2" opacity=".7"/>
+      </svg>
+      <svg class="cheers" viewBox="0 0 60 60" aria-hidden="true">
+        <g transform="rotate(-22 18 34)"><path d="M14 8h8v10c4 3 6 6 6 12v20c0 3-2 5-5 5h-10c-3 0-5-2-5-5V30c0-6 2-9 6-12z" fill="#fff" stroke="#111" stroke-width="2.6" stroke-linejoin="round"/><path d="M12 36h14" stroke="#111" stroke-width="2.4"/><rect x="14" y="4" width="8" height="5" rx="1.5" fill="#111"/></g>
+        <g transform="rotate(22 42 34)"><path d="M38 8h8v10c4 3 6 6 6 12v20c0 3-2 5-5 5H36c-3 0-5-2-5-5V30c0-6 2-9 6-12z" fill="#fff" stroke="#111" stroke-width="2.6" stroke-linejoin="round"/><path d="M34 36h14" stroke="#111" stroke-width="2.4"/><rect x="38" y="4" width="8" height="5" rx="1.5" fill="#111"/></g>
+        <path d="M26 3l2 5M30 1v6M34 3l-2 5" stroke="#111" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <p>Ven por la barbacoa de borrego, las bebidas y el <span class="relajo">relajo</span>.</p>
+      <p class="when">21 DE NOVIEMBRE<br>A LAS 13:00 HORAS</p>
+      <p>¡Baila como si nadie estuviera grabando! 😜</p>
+      <p>Y canta como si no te escucharan.</p>
+      <p class="stay">No te preocupes por el hospedaje: contamos con 3 recintos para que te puedas quedar.</p>
+    </div>
+
+    <img class="plate" src="images/barbacoa.png" alt="Tacos de barbacoa de borrego">
+
+    <div class="drinks">
+      <img src="images/bebidas.png" alt="Bebidas">
+      <p class="habia">¡HABRÁ BEBIDAS!</p>
+    </div>
+
+    <img class="sheep" src="images/borrego.png" alt="Barbacoa de borrego">
+
+    <img class="shot shot-b" src="images/sticker2.png" alt="Cha">
+
+    <a class="map" href="https://www.google.com/maps/search/?api=1&amp;query=Privada%2031%20de%20San%20L%C3%A1zaro%20382%2C%20Privadas%20de%20Santa%20Matilde%20Plus%2C%20Zempoala%2C%20Hidalgo%2043845" target="_blank" rel="noopener noreferrer">
+      <div class="pill">
+        <svg class="gpin" width="38" height="46" viewBox="0 0 48 58" aria-hidden="true">
+          <path d="M24 3C14 3 6.5 10.5 6.5 20.5c0 13.5 17.5 33 17.5 33s17.5-19.5 17.5-33C41.5 10.5 34 3 24 3z" fill="#34a853"/>
+          <path d="M24 3C14 3 6.5 10.5 6.5 20.5c0 3.2 1 6.4 2.6 9.6L24 14z" fill="#ea4335"/>
+          <path d="M24 3c10 0 17.5 7.5 17.5 17.5 0 3.4-1.2 7-3 10.4L24 14z" fill="#4285f4"/>
+          <path d="M9.1 30.1C13 38.5 24 53.5 24 53.5s7.5-8.7 12.4-18.6L24 22z" fill="#fbbc05"/>
+          <circle cx="24" cy="20" r="6.4" fill="#fff"/>
+        </svg>
+        <div class="addr">
+          <strong>Privada 31 de San Lázaro #382</strong>
+          <strong>Privadas de Santa Matilde Plus</strong>
+        </div>
+      </div>
+    </a>
+
+    <img class="shot shot-c" src="images/sticker3.png" alt="Invitado">
+
+    <aside class="dress">
+      <img class="dress-card" src="images/dresscode.png" alt="Dress code: años 80's y 90's">
+      <img class="shades" src="images/lentes.png" alt="">
+    </aside>
+
+    <img class="boom" src="images/radio.png" alt="Radio">
+
+    <button type="button" class="player" id="playBtn" aria-pressed="false" aria-label="Reproducir Ecos de Soda Stereo">
+      <span class="vinyl" aria-hidden="true"></span>
+      <span class="meta">
+        <small>ESCUCHA:</small>
+        <strong>Ecos</strong>
+        <em>Soda Stereo</em>
+      </span>
+      <span class="play" aria-hidden="true"><i></i></span>
+    </button>
+  </div>
+  </main>
+  <script>
+    (function () {
+      var stage = document.getElementById("stage");
+      function fit() { stage.style.setProperty("--k", (stage.clientWidth / 390).toFixed(4)); }
+      fit();
+      window.addEventListener("resize", fit);
+    })();
+  </script>
+
+  <audio id="track" preload="auto" src="audio/ecos.mp3" loop></audio>
+  <script>
+    const audio = document.getElementById("track");
+    const btn = document.getElementById("playBtn");
+    let missing = false;
+
+    audio.addEventListener("error", () => { missing = true; });
+
+    function setPlaying(on) {
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.setAttribute("aria-label", on ? "Pausar Ecos de Soda Stereo" : "Reproducir Ecos de Soda Stereo");
+    }
+
+    function startMusic() {
+      if (missing || !audio.paused) return;
+      const pending = audio.play();
+      if (!pending) return;
+      pending.then(() => {
+        setPlaying(true);
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("wheel", onScroll);
+        window.removeEventListener("touchmove", onScroll);
+      }).catch(() => {});
+    }
+
+    function onScroll(event) {
+      if (event && event.target && event.target.closest && event.target.closest("#playBtn")) return;
+      startMusic();
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onScroll, { passive: true });
+    window.addEventListener("touchmove", onScroll, { passive: true });
+    document.addEventListener("pointerdown", onScroll);
+
+    btn.addEventListener("click", () => {
+      if (missing) return;
+      if (!audio.paused) {
+        audio.pause();
+        setPlaying(false);
+        return;
+      }
+      startMusic();
+    });
+  </script>
+</body>
+</html>
